@@ -1,139 +1,185 @@
 Public Class ProductForm
     Inherits BaseForm
 
-    Private _productList As List(Of Product)
-    Private WithEvents dgvProducts As DataGridView
-    Private WithEvents btnAdd As Button
-    Private WithEvents btnEdit As Button
-    Private WithEvents btnDelete As Button
+    Private _products As List(Of Product)
+    Private WithEvents txtSearch As TextBox
 
     Public Sub New()
         MyBase.New()
-        InitializeComponent()
-        LoadProductData()
+        Me.Text = "Products Management"
+        lblTitle.Text = "Products Management"
+        InitializeProductsUI()
+        LoadProductsData()
     End Sub
 
-    Private Sub InitializeComponent()
-        Me.Text = "Product Management"
-        Me.Size = New Size(800, 600)
+    Private Sub InitializeProductsUI()
+        ' Create Table Layout
+        Dim tableLayoutPanel = CreateTableLayoutPanel()
 
-        dgvProducts = New DataGridView()
-        With dgvProducts
-            .Dock = DockStyle.Fill
-            .AllowUserToAddRows = False
-            .AllowUserToDeleteRows = False
-            .MultiSelect = False
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
-            .AutoGenerateColumns = False
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+        ' Search Panel
+        Dim searchPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(0, 0, 0, 10)
+        }
+
+        txtSearch = CreateSearchTextBox()
+        txtSearch.PlaceholderText = "Search products..."
+        txtSearch.Location = New Point(0, 10)
+        AddHandler txtSearch.TextChanged, AddressOf FilterProducts
+
+        searchPanel.Controls.Add(txtSearch)
+        tableLayoutPanel.Controls.Add(searchPanel, 0, 0)
+
+        ' Initialize DataGridView
+        dgvData = CreateModernDataGridView()
+
+        ' Configure columns
+        With dgvData.Columns
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "ProductId",
                 .HeaderText = "ID",
-                .Width = 50
+                .Width = 80,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "ProductName",
-                .HeaderText = "Name",
-                .Width = 120
+                .HeaderText = "Product Name",
+                .Width = 250,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "Category",
                 .HeaderText = "Category",
-                .Width = 120
+                .Width = 150,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "UnitPrice",
                 .HeaderText = "Unit Price",
-                .Width = 100
+                .Width = 120,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                .DefaultCellStyle = New DataGridViewCellStyle With {
+                    .Format = "C2",
+                    .Alignment = DataGridViewContentAlignment.MiddleRight
+                }
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "StockQuantity",
                 .HeaderText = "Stock",
-                .Width = 80
+                .Width = 100,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None,
+                .DefaultCellStyle = New DataGridViewCellStyle With {
+                    .Alignment = DataGridViewContentAlignment.MiddleRight
+                }
             })
         End With
 
-        Dim buttonPanel As New FlowLayoutPanel With {
-            .Dock = DockStyle.Bottom,
-            .FlowDirection = FlowDirection.LeftToRight,
-            .Height = 40,
-            .Padding = New Padding(5)
+        ' Add DataGridView to a panel for padding
+        Dim gridPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(1)
         }
-        btnAdd = New Button With {
-            .Text = "Add Product",
-            .Width = 100
+        gridPanel.Controls.Add(dgvData)
+        tableLayoutPanel.Controls.Add(gridPanel, 0, 1)
+
+        ' Button Panel
+        Dim buttonPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(0, 10, 0, 0)
         }
-        btnEdit = New Button With {
-            .Text = "Edit Product",
-            .Width = 100,
-            .Enabled = False
-        }
-        btnDelete = New Button With {
-            .Text = "Delete Product",
-            .Width = 100,
-            .Enabled = False
-        }
+
+        ' Initialize buttons
+        btnAdd = CreateModernButton("Add Product", True)
+        btnEdit = CreateModernButton("Edit Product", False)
+        btnDelete = CreateModernButton("Delete Product", False)
+
+        ' Disable edit/delete buttons initially
+        btnEdit.Enabled = False
+        btnDelete.Enabled = False
+
+        ' Add buttons to panel with proper spacing
         buttonPanel.Controls.AddRange({btnAdd, btnEdit, btnDelete})
-        Me.Controls.Add(dgvProducts)
-        Me.Controls.Add(buttonPanel)
+        For i = 0 To buttonPanel.Controls.Count - 1
+            buttonPanel.Controls(i).Left = i * 140 + 10
+            buttonPanel.Controls(i).Top = 10
+        Next
+
+        tableLayoutPanel.Controls.Add(buttonPanel, 0, 2)
+
+        ' Wire up events
+        AddHandler dgvData.SelectionChanged, AddressOf DgvProducts_SelectionChanged
+        AddHandler btnAdd.Click, AddressOf BtnAdd_Click
+        AddHandler btnEdit.Click, AddressOf BtnEdit_Click
+        AddHandler btnDelete.Click, AddressOf BtnDelete_Click
+
+        ' Add TableLayoutPanel to content panel
+        contentPanel.Controls.Add(tableLayoutPanel)
     End Sub
 
-    Private Sub LoadProductData()
+    Private Sub LoadProductsData()
         Try
-            _productList = _dataService.GetProducts()
-            dgvProducts.DataSource = Nothing
-            dgvProducts.DataSource = _productList
+            _products = _dataService.GetProducts()
+            dgvData.DataSource = Nothing
+            dgvData.DataSource = _products
+            dgvData.Refresh()
         Catch ex As Exception
-            ShowError("Error loading product data: " & ex.Message)
+            ShowError("Error loading products data: " & ex.Message)
         End Try
     End Sub
 
-    Private Sub dgvProducts_SelectionChanged(sender As Object, e As EventArgs) Handles dgvProducts.SelectionChanged
-        Dim hasSelection = dgvProducts.SelectedRows.Count > 0
+    Private Sub FilterProducts(sender As Object, e As EventArgs)
+        If _products Is Nothing Then Return
+
+        Dim searchText = txtSearch.Text.ToLower()
+        Dim filtered = _products.Where(Function(p) _
+            p.ProductName.ToLower().Contains(searchText) OrElse _
+            p.Category.ToLower().Contains(searchText) OrElse _
+            p.ProductId.ToString().Contains(searchText)
+        ).ToList()
+
+        dgvData.DataSource = Nothing
+        dgvData.DataSource = filtered
+        dgvData.Refresh()
+    End Sub
+
+    Private Sub DgvProducts_SelectionChanged(sender As Object, e As EventArgs)
+        Dim hasSelection = dgvData.SelectedRows.Count > 0
         btnEdit.Enabled = hasSelection
         btnDelete.Enabled = hasSelection
     End Sub
 
-    Private Sub btnAdd_Click(sender As Object, e As EventArgs) Handles btnAdd.Click
-        Dim newProduct As New Product With {.ProductId = GetNextProductId()}
+    Private Sub BtnAdd_Click(sender As Object, e As EventArgs)
+        Dim newProduct As New Product()
         Using detailsForm As New ProductDetailsForm(newProduct)
             If detailsForm.ShowDialog() = DialogResult.OK Then
-                If Not String.IsNullOrEmpty(newProduct.ImagePath) AndAlso IO.File.Exists(newProduct.ImagePath) Then
-                    newProduct.ImagePath = ImageHelper.SaveImageAndGetPath(newProduct.ImagePath, "Product", newProduct.ProductId)
-                End If
-                _productList.Add(newProduct)
-                _dataService.SaveProducts(_productList)
-                LoadProductData()
-                ShowInfo("Product added successfully.")
+                _products.Add(newProduct)
+                _dataService.SaveProducts(_products)
+                LoadProductsData()
             End If
         End Using
     End Sub
 
-    Private Sub btnEdit_Click(sender As Object, e As EventArgs) Handles btnEdit.Click
-        If dgvProducts.SelectedRows.Count > 0 Then
-            Dim selectedProduct = DirectCast(dgvProducts.SelectedRows(0).DataBoundItem, Product)
-            Dim originalImagePath = selectedProduct.ImagePath
-            Using detailsForm As New ProductDetailsForm(selectedProduct)
+    Private Sub BtnEdit_Click(sender As Object, e As EventArgs)
+        If dgvData.SelectedRows.Count > 0 Then
+            Dim product = DirectCast(dgvData.SelectedRows(0).DataBoundItem, Product)
+            Using detailsForm As New ProductDetailsForm(product)
                 If detailsForm.ShowDialog() = DialogResult.OK Then
-                    If Not String.IsNullOrEmpty(selectedProduct.ImagePath) AndAlso IO.File.Exists(selectedProduct.ImagePath) AndAlso selectedProduct.ImagePath <> originalImagePath Then
-                        selectedProduct.ImagePath = ImageHelper.SaveImageAndGetPath(selectedProduct.ImagePath, "Product", selectedProduct.ProductId)
-                    End If
-                    _dataService.SaveProducts(_productList)
-                    LoadProductData()
-                    ShowInfo("Product updated successfully.")
+                    _dataService.SaveProducts(_products)
+                    LoadProductsData()
                 End If
             End Using
         End If
     End Sub
 
-    Private Sub btnDelete_Click(sender As Object, e As EventArgs) Handles btnDelete.Click
-        If dgvProducts.SelectedRows.Count > 0 Then
-            If MessageBox.Show("Are you sure you want to delete this product?", "Confirm Delete",
-                             MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes Then
+    Private Sub BtnDelete_Click(sender As Object, e As EventArgs)
+        If dgvData.SelectedRows.Count > 0 Then
+            Dim product = DirectCast(dgvData.SelectedRows(0).DataBoundItem, Product)
+            If MessageBox.Show($"Are you sure you want to delete product '{product.ProductName}'?",
+                             "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes Then
                 Try
-                    Dim selectedProduct = DirectCast(dgvProducts.SelectedRows(0).DataBoundItem, Product)
-                    _productList.Remove(selectedProduct)
-                    _dataService.SaveProducts(_productList)
-                    LoadProductData()
+                    _products.Remove(product)
+                    _dataService.SaveProducts(_products)
+                    LoadProductsData()
                     ShowInfo("Product deleted successfully")
                 Catch ex As Exception
                     ShowError("Error deleting product: " & ex.Message)
@@ -141,9 +187,4 @@ Public Class ProductForm
             End If
         End If
     End Sub
-
-    Private Function GetNextProductId() As Integer
-        If _productList Is Nothing OrElse _productList.Count = 0 Then Return 1
-        Return _productList.Max(Function(p) p.ProductId) + 1
-    End Function
 End Class

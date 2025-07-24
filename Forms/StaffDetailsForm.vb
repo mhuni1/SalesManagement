@@ -104,7 +104,7 @@ Public Class StaffDetailsForm
         AddHandler btnSave.Click, AddressOf BtnSave_Click
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
 
-        Me.Controls.AddRange({lblTitle, pictureBox, btnUpload, lblFirstName, txtFirstName, lblLastName, txtLastName, lblPosition, txtPosition, lblEmail, txtEmail, lblPhoneNumber, txtPhoneNumber, lblHireDate, dtpHireDate, lblSalary, txtSalary, btnSave, btnCancel})
+        contentPanel.Controls.AddRange({lblTitle, pictureBox, btnUpload, lblFirstName, txtFirstName, lblLastName, txtLastName, lblPosition, txtPosition, lblEmail, txtEmail, lblPhoneNumber, txtPhoneNumber, lblHireDate, dtpHireDate, lblSalary, txtSalary, btnSave, btnCancel})
     End Sub
 
     Private Sub BtnUpload_Click(sender As Object, e As EventArgs)

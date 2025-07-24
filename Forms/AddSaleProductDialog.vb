@@ -155,7 +155,7 @@ Public Class AddSaleProductDialog
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
         AddHandler cmbProduct.SelectedIndexChanged, AddressOf CmbProduct_SelectedIndexChanged
 
-        Me.Controls.AddRange({lblTitle, pnlProduct, pnlControls, btnOK, btnCancel})
+        contentPanel.Controls.AddRange({lblTitle, pnlProduct, pnlControls, btnOK, btnCancel})
 
         ' Initialize product selection
         If _products IsNot Nothing AndAlso _products.Count > 0 AndAlso cmbProduct.Items.Count > 0 Then

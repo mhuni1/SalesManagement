@@ -10,43 +10,53 @@ Public Class LoginForm
 
     Public Sub New()
         Me.Text = "Login - MART Sales Management"
-        Me.Size = New Size(400, 350)
+        Me.Size = New Size(600, 480)
         Me.FormBorderStyle = FormBorderStyle.FixedDialog
         Me.MaximizeBox = False
         Me.MinimizeBox = False
         Me.StartPosition = FormStartPosition.CenterScreen
         Me.BackColor = Color.White
 
+        Dim formWidth As Integer = Me.ClientSize.Width
+        Dim titleFont As New Font("Segoe UI", 28, FontStyle.Bold)
         Dim lblTitle As New Label With {
             .Text = "MART Sales Management",
-            .Font = New Font("Segoe UI", 18, FontStyle.Bold),
+            .Font = titleFont,
             .ForeColor = Color.FromArgb(0, 120, 215),
-            .Location = New Point(40, 30),
             .AutoSize = True
         }
-        Dim lblEmail As New Label With {.Text = "Email", .Location = New Point(40, 90), .Font = New Font("Segoe UI", 11)}
-        txtEmail = New TextBox With {.Location = New Point(40, 120), .Width = 300, .Font = New Font("Segoe UI", 11)}
-        Dim lblPassword As New Label With {.Text = "Password", .Location = New Point(40, 160), .Font = New Font("Segoe UI", 11)}
-        txtPassword = New TextBox With {.Location = New Point(40, 190), .Width = 300, .Font = New Font("Segoe UI", 11), .UseSystemPasswordChar = True}
+        ' Center the title after adding to Controls
+        Me.Controls.Add(lblTitle)
+        lblTitle.Left = (Me.ClientSize.Width - lblTitle.Width) \ 2
+        lblTitle.Top = 50
+
+        Dim leftPad As Integer = 80
+        Dim ctrlWidth As Integer = 440
+        Dim lblEmail As New Label With {.Text = "Email", .Location = New Point(leftPad, 130), .Font = New Font("Segoe UI", 13)}
+        txtEmail = New TextBox With {.Location = New Point(leftPad, 160), .Width = ctrlWidth, .Font = New Font("Segoe UI", 13)}
+        Dim lblPassword As New Label With {.Text = "Password", .Location = New Point(leftPad, 210), .Font = New Font("Segoe UI", 13)}
+        txtPassword = New TextBox With {.Location = New Point(leftPad, 240), .Width = ctrlWidth, .Font = New Font("Segoe UI", 13), .UseSystemPasswordChar = True}
         btnLogin = New Button With {
             .Text = "Login",
-            .Location = New Point(40, 240),
-            .Width = 300,
-            .Height = 40,
+            .Location = New Point(leftPad, 320),
+            .Width = ctrlWidth,
+            .Height = 50,
             .BackColor = Color.FromArgb(0, 120, 215),
             .ForeColor = Color.White,
             .FlatStyle = FlatStyle.Flat,
-            .Font = New Font("Segoe UI", 12, FontStyle.Bold)
+            .Font = New Font("Segoe UI", 16, FontStyle.Bold)
         }
         lblError = New Label With {
             .Text = "",
             .ForeColor = Color.Red,
-            .Location = New Point(40, 220),
+            .Location = New Point(leftPad, 290),
             .AutoSize = True,
-            .Font = New Font("Segoe UI", 10, FontStyle.Bold)
+            .Font = New Font("Segoe UI", 12, FontStyle.Bold)
         }
         AddHandler btnLogin.Click, AddressOf BtnLogin_Click
-        Me.Controls.AddRange({lblTitle, lblEmail, txtEmail, lblPassword, txtPassword, btnLogin, lblError})
+        Me.Controls.AddRange({lblEmail, txtEmail, lblPassword, txtPassword, btnLogin, lblError})
+        ' Center the title again after all controls are added (for correct width)
+        lblTitle.Left = (Me.ClientSize.Width - lblTitle.Width) \ 2
     End Sub
 
     Private Sub BtnLogin_Click(sender As Object, e As EventArgs)

@@ -95,7 +95,7 @@ Public Class ProductDetailsForm
         AddHandler btnSave.Click, AddressOf BtnSave_Click
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
 
-        Me.Controls.AddRange({lblTitle, pictureBox, btnUpload, lblProductName, txtProductName, lblCategory, txtCategory, lblUnitPrice, txtUnitPrice, lblStockQuantity, txtStockQuantity, btnSave, btnCancel})
+        contentPanel.Controls.AddRange({lblTitle, pictureBox, btnUpload, lblProductName, txtProductName, lblCategory, txtCategory, lblUnitPrice, txtUnitPrice, lblStockQuantity, txtStockQuantity, btnSave, btnCancel})
     End Sub
 
     Private Sub BtnUpload_Click(sender As Object, e As EventArgs)

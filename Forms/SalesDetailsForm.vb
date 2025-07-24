@@ -203,7 +203,7 @@ Public Class SalesDetailsForm
         AddHandler btnSave.Click, AddressOf BtnSave_Click
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
 
-        Me.Controls.AddRange({lblTitle, lblCustomer, cmbCustomer, lblStaff, cmbStaff, lblSaleDate, dtpSaleDate, dgvItems, btnAddProduct, btnRemoveProduct, lblTotal, lblPayment, cmbPaymentMethod, btnSave, btnCancel})
+        contentPanel.Controls.AddRange({lblTitle, lblCustomer, cmbCustomer, lblStaff, cmbStaff, lblSaleDate, dtpSaleDate, dgvItems, btnAddProduct, btnRemoveProduct, lblTotal, lblPayment, cmbPaymentMethod, btnSave, btnCancel})
         dgvItems.DataSource = New BindingSource(SaleItem.Items, Nothing)
         UpdateTotal()
     End Sub

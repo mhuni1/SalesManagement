@@ -70,7 +70,7 @@ Public Class CustomerDetailsForm
         AddHandler btnSave.Click, AddressOf BtnSave_Click
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
 
-        Me.Controls.AddRange({lblTitle, lblFirstName, txtFirstName, lblLastName, txtLastName, lblAddress, txtAddress, lblPhoneNumber, txtPhoneNumber, btnSave, btnCancel})
+        contentPanel.Controls.AddRange({lblTitle, lblFirstName, txtFirstName, lblLastName, txtLastName, lblAddress, txtAddress, lblPhoneNumber, txtPhoneNumber, btnSave, btnCancel})
     End Sub
 
     Private Sub LoadCustomerData()

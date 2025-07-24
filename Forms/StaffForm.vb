@@ -2,146 +2,177 @@ Public Class StaffForm
     Inherits BaseForm
 
     Private _staffList As List(Of Staff)
-    Private WithEvents dgvStaff As DataGridView
-    Private WithEvents btnAdd As Button
-    Private WithEvents btnEdit As Button
-    Private WithEvents btnDelete As Button
+    Private WithEvents txtSearch As TextBox
 
     Public Sub New()
         MyBase.New()
-        InitializeComponent()
+        Me.Text = "Staff Management"
+        lblTitle.Text = "Staff Management"
+        InitializeStaffUI()
         LoadStaffData()
     End Sub
 
-    Private Sub InitializeComponent()
-        Me.Text = "Staff Management"
-        Me.Size = New Size(800, 600)
+    Private Sub InitializeStaffUI()
+        ' Create Table Layout
+        Dim tableLayoutPanel = CreateTableLayoutPanel()
 
-        ' Create DataGridView
-        dgvStaff = New DataGridView()
-        With dgvStaff
-            .Dock = DockStyle.Fill
-            .AllowUserToAddRows = False
-            .AllowUserToDeleteRows = False
-            .MultiSelect = False
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
-            .AutoGenerateColumns = False
-            ' Add columns
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+        ' Search Panel
+        Dim searchPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(0, 0, 0, 10)
+        }
+
+        txtSearch = CreateSearchTextBox()
+        txtSearch.PlaceholderText = "Search staff..."
+        txtSearch.Location = New Point(0, 10)
+        AddHandler txtSearch.TextChanged, AddressOf FilterStaff
+
+        searchPanel.Controls.Add(txtSearch)
+        tableLayoutPanel.Controls.Add(searchPanel, 0, 0)
+
+        ' Initialize DataGridView
+        dgvData = CreateModernDataGridView()
+
+        ' Configure columns
+        With dgvData.Columns
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "StaffId",
                 .HeaderText = "ID",
-                .Width = 50
+                .Width = 80,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
-                .DataPropertyName = "FirstName",
-                .HeaderText = "First Name",
-                .Width = 120
+            .Add(New DataGridViewTextBoxColumn With {
+                .DataPropertyName = "FullName",
+                .HeaderText = "Full Name",
+                .Width = 200,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
-                .DataPropertyName = "LastName",
-                .HeaderText = "Last Name",
-                .Width = 120
-            })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "Position",
                 .HeaderText = "Position",
-                .Width = 120
+                .Width = 150,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "Email",
                 .HeaderText = "Email",
-                .Width = 150
+                .Width = 200,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "PhoneNumber",
                 .HeaderText = "Phone",
-                .Width = 100
+                .Width = 150,
+                .AutoSizeMode = DataGridViewAutoSizeColumnMode.None
             })
         End With
 
-        ' Create Buttons
-        Dim buttonPanel As New FlowLayoutPanel With {
-            .Dock = DockStyle.Bottom,
-            .FlowDirection = FlowDirection.LeftToRight,
-            .Height = 40,
-            .Padding = New Padding(5)
+        ' Add DataGridView to a panel for padding
+        Dim gridPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(1)
         }
-        btnAdd = New Button With {
-            .Text = "Add Staff",
-            .Width = 100
+        gridPanel.Controls.Add(dgvData)
+        tableLayoutPanel.Controls.Add(gridPanel, 0, 1)
+
+        ' Button Panel
+        Dim buttonPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .Padding = New Padding(0, 10, 0, 0)
         }
-        btnEdit = New Button With {
-            .Text = "Edit Staff",
-            .Width = 100,
-            .Enabled = False
-        }
-        btnDelete = New Button With {
-            .Text = "Delete Staff",
-            .Width = 100,
-            .Enabled = False
-        }
+
+        ' Initialize buttons
+        btnAdd = CreateModernButton("Add Staff", True)
+        btnEdit = CreateModernButton("Edit Staff", False)
+        btnDelete = CreateModernButton("Delete Staff", False)
+
+        ' Disable edit/delete buttons initially
+        btnEdit.Enabled = False
+        btnDelete.Enabled = False
+
+        ' Add buttons to panel with proper spacing
         buttonPanel.Controls.AddRange({btnAdd, btnEdit, btnDelete})
-        Me.Controls.Add(dgvStaff)
-        Me.Controls.Add(buttonPanel)
+        For i = 0 To buttonPanel.Controls.Count - 1
+            buttonPanel.Controls(i).Left = i * 140 + 10
+            buttonPanel.Controls(i).Top = 10
+        Next
+
+        tableLayoutPanel.Controls.Add(buttonPanel, 0, 2)
+
+        ' Wire up events
+        AddHandler dgvData.SelectionChanged, AddressOf DgvStaff_SelectionChanged
+        AddHandler btnAdd.Click, AddressOf BtnAdd_Click
+        AddHandler btnEdit.Click, AddressOf BtnEdit_Click
+        AddHandler btnDelete.Click, AddressOf BtnDelete_Click
+
+        ' Add TableLayoutPanel to content panel
+        contentPanel.Controls.Add(tableLayoutPanel)
     End Sub
 
     Private Sub LoadStaffData()
         Try
             _staffList = _dataService.GetStaff()
-            dgvStaff.DataSource = Nothing
-            dgvStaff.DataSource = _staffList
+            dgvData.DataSource = Nothing
+            dgvData.DataSource = _staffList
+            dgvData.Refresh()
         Catch ex As Exception
             ShowError("Error loading staff data: " & ex.Message)
         End Try
     End Sub
 
-    Private Sub dgvStaff_SelectionChanged(sender As Object, e As EventArgs) Handles dgvStaff.SelectionChanged
-        Dim hasSelection = dgvStaff.SelectedRows.Count > 0
+    Private Sub FilterStaff(sender As Object, e As EventArgs)
+        If _staffList Is Nothing Then Return
+
+        Dim searchText = txtSearch.Text.ToLower()
+        Dim filtered = _staffList.Where(Function(s) _
+            s.FullName.ToLower().Contains(searchText) OrElse
+            s.Position.ToLower().Contains(searchText) OrElse
+            s.Email.ToLower().Contains(searchText) OrElse
+            s.PhoneNumber.ToString().Contains(searchText) OrElse
+            s.StaffId.ToString().Contains(searchText)
+        ).ToList()
+
+        dgvData.DataSource = Nothing
+        dgvData.DataSource = filtered
+        dgvData.Refresh()
+    End Sub
+
+    Private Sub DgvStaff_SelectionChanged(sender As Object, e As EventArgs)
+        Dim hasSelection = dgvData.SelectedRows.Count > 0
         btnEdit.Enabled = hasSelection
         btnDelete.Enabled = hasSelection
     End Sub
 
-    Private Sub btnAdd_Click(sender As Object, e As EventArgs) Handles btnAdd.Click
-        Dim newStaff As New Staff With {.StaffId = GetNextStaffId()}
+    Private Sub BtnAdd_Click(sender As Object, e As EventArgs)
+        Dim newStaff As New Staff()
         Using detailsForm As New StaffDetailsForm(newStaff)
             If detailsForm.ShowDialog() = DialogResult.OK Then
-                ' Save image if uploaded
-                If Not String.IsNullOrEmpty(newStaff.ImagePath) AndAlso IO.File.Exists(newStaff.ImagePath) Then
-                    newStaff.ImagePath = ImageHelper.SaveImageAndGetPath(newStaff.ImagePath, "Staff", newStaff.StaffId)
-                End If
                 _staffList.Add(newStaff)
                 _dataService.SaveStaff(_staffList)
                 LoadStaffData()
-                ShowInfo("Staff member added successfully.")
             End If
         End Using
     End Sub
 
-    Private Sub btnEdit_Click(sender As Object, e As EventArgs) Handles btnEdit.Click
-        If dgvStaff.SelectedRows.Count > 0 Then
-            Dim selectedStaff = DirectCast(dgvStaff.SelectedRows(0).DataBoundItem, Staff)
-            Dim originalImagePath = selectedStaff.ImagePath
-            Using detailsForm As New StaffDetailsForm(selectedStaff)
+    Private Sub BtnEdit_Click(sender As Object, e As EventArgs)
+        If dgvData.SelectedRows.Count > 0 Then
+            Dim staff = DirectCast(dgvData.SelectedRows(0).DataBoundItem, Staff)
+            Using detailsForm As New StaffDetailsForm(staff)
                 If detailsForm.ShowDialog() = DialogResult.OK Then
-                    ' Save image if changed
-                    If Not String.IsNullOrEmpty(selectedStaff.ImagePath) AndAlso IO.File.Exists(selectedStaff.ImagePath) AndAlso selectedStaff.ImagePath <> originalImagePath Then
-                        selectedStaff.ImagePath = ImageHelper.SaveImageAndGetPath(selectedStaff.ImagePath, "Staff", selectedStaff.StaffId)
-                    End If
                     _dataService.SaveStaff(_staffList)
                     LoadStaffData()
-                    ShowInfo("Staff member updated successfully.")
                 End If
             End Using
         End If
     End Sub
 
-    Private Sub btnDelete_Click(sender As Object, e As EventArgs) Handles btnDelete.Click
-        If dgvStaff.SelectedRows.Count > 0 Then
-            If MessageBox.Show("Are you sure you want to delete this staff member?", "Confirm Delete",
-                             MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes Then
+    Private Sub BtnDelete_Click(sender As Object, e As EventArgs)
+        If dgvData.SelectedRows.Count > 0 Then
+            Dim staff = DirectCast(dgvData.SelectedRows(0).DataBoundItem, Staff)
+            If MessageBox.Show($"Are you sure you want to delete staff member '{staff.FullName}'?",
+                             "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes Then
                 Try
-                    Dim selectedStaff = DirectCast(dgvStaff.SelectedRows(0).DataBoundItem, Staff)
-                    _staffList.Remove(selectedStaff)
+                    _staffList.Remove(staff)
                     _dataService.SaveStaff(_staffList)
                     LoadStaffData()
                     ShowInfo("Staff member deleted successfully")
@@ -151,9 +182,4 @@ Public Class StaffForm
             End If
         End If
     End Sub
-
-    Private Function GetNextStaffId() As Integer
-        If _staffList Is Nothing OrElse _staffList.Count = 0 Then Return 1
-        Return _staffList.Max(Function(s) s.StaffId) + 1
-    End Function
 End Class
