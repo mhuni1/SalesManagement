@@ -24,6 +24,14 @@ Namespace My
     ' End Sub
 
     Partial Friend Class MyApplication
-
+        Private Sub MyApplication_Startup(sender As Object, e As StartupEventArgs) Handles Me.Startup
+            Dim loginForm As New LoginForm()
+            If loginForm.ShowDialog() = DialogResult.OK Then
+                Dim mainForm As New Form1()
+                mainForm.ShowDialog()
+            End If
+            ' Exit after closing main form or failed login
+            End
+        End Sub
     End Class
 End Namespace

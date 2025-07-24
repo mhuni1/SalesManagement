@@ -5,7 +5,7 @@ Public Class SalesDetailsForm
 
     Public Property SaleItem As Sale
     Private cmbCustomer As ComboBox
-    Private cmbStaff As ComboBox ' New: Staff selection
+    Private cmbStaff As ComboBox
     Private dgvItems As DataGridView
     Private btnAddProduct As Button
     Private btnRemoveProduct As Button
@@ -15,7 +15,7 @@ Public Class SalesDetailsForm
     Private btnCancel As Button
     Private _customers As List(Of Customer)
     Private _products As List(Of Product)
-    Private _staffList As List(Of Staff) ' New: Staff list
+    Private _staffList As List(Of Staff)
     Private dtpSaleDate As DateTimePicker
 
     Public Sub New(Optional sale As Sale = Nothing)
@@ -23,7 +23,7 @@ Public Class SalesDetailsForm
         Me.SaleItem = If(sale, New Sale())
         _customers = _dataService.GetCustomers()
         _products = _dataService.GetProducts()
-        _staffList = _dataService.GetStaff() ' New: Load staff
+        _staffList = _dataService.GetStaff()
         InitializeComponent()
         If sale IsNot Nothing Then
             LoadSaleData()
@@ -32,47 +32,84 @@ Public Class SalesDetailsForm
 
     Private Sub InitializeComponent()
         Me.Text = "Sale Details"
-        Me.Size = New Size(700, 700)
+        Me.Size = New Size(900, 700)
         Me.FormBorderStyle = FormBorderStyle.FixedDialog
         Me.MaximizeBox = False
         Me.MinimizeBox = False
+        Me.BackColor = Color.White
+        Me.StartPosition = FormStartPosition.CenterParent
 
-        Dim lblCustomer As New Label With {.Text = "Customer", .Location = New Point(20, 30)}
+        Dim lblTitle As New Label With {
+            .Text = "New Sale",
+            .Font = New Font("Segoe UI", 16, FontStyle.Bold),
+            .ForeColor = Color.FromArgb(0, 120, 215),
+            .Location = New Point(30, 20),
+            .AutoSize = True
+        }
+
+        Dim lblCustomer As New Label With {
+            .Text = "Customer",
+            .Location = New Point(30, 70),
+            .Font = New Font("Segoe UI", 10),
+            .AutoSize = True
+        }
         cmbCustomer = New ComboBox With {
-            .Location = New Point(120, 25),
+            .Location = New Point(120, 65),
             .Width = 220,
             .DropDownStyle = ComboBoxStyle.DropDownList,
             .DataSource = _customers,
             .DisplayMember = "FullName",
-            .ValueMember = "CustomerId"
+            .ValueMember = "CustomerId",
+            .Font = New Font("Segoe UI", 10)
         }
 
-        Dim lblStaff As New Label With {.Text = "Staff", .Location = New Point(370, 30)}
+        Dim lblStaff As New Label With {
+            .Text = "Staff",
+            .Location = New Point(370, 70),
+            .Font = New Font("Segoe UI", 10),
+            .AutoSize = True
+        }
         cmbStaff = New ComboBox With {
-            .Location = New Point(450, 25),
-            .Width = 180,
+            .Location = New Point(450, 65),
+            .Width = 220,
             .DropDownStyle = ComboBoxStyle.DropDownList,
             .DataSource = _staffList,
             .DisplayMember = "FullName",
-            .ValueMember = "StaffId"
+            .ValueMember = "StaffId",
+            .Font = New Font("Segoe UI", 10)
         }
 
-        Dim lblSaleDate As New Label With {.Text = "Sale Date", .Location = New Point(20, 70)}
+        Dim lblSaleDate As New Label With {
+            .Text = "Sale Date",
+            .Location = New Point(700, 70),
+            .Font = New Font("Segoe UI", 10),
+            .AutoSize = True
+        }
         dtpSaleDate = New DateTimePicker With {
-            .Location = New Point(120, 65),
-            .Width = 220,
+            .Location = New Point(780, 65),
+            .Width = 100,
             .Format = DateTimePickerFormat.Custom,
-            .CustomFormat = "yyyy-MM-dd HH:mm:ss"
+            .CustomFormat = "yyyy-MM-dd HH:mm:ss",
+            .Font = New Font("Segoe UI", 10)
         }
 
         dgvItems = New DataGridView With {
-            .Location = New Point(20, 110),
-            .Size = New Size(640, 300),
+            .Location = New Point(30, 120),
+            .Size = New Size(820, 320),
             .AllowUserToAddRows = False,
             .AllowUserToDeleteRows = False,
             .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            .AutoGenerateColumns = False
+            .AutoGenerateColumns = False,
+            .BackgroundColor = Color.White,
+            .Font = New Font("Segoe UI", 10)
         }
+        ' Add image column for product
+        Dim imgCol As New DataGridViewImageColumn With {
+            .HeaderText = "Image",
+            .Width = 80,
+            .ImageLayout = DataGridViewImageCellLayout.Zoom
+        }
+        dgvItems.Columns.Add(imgCol)
         dgvItems.Columns.Add(New DataGridViewTextBoxColumn With {
             .HeaderText = "Product",
             .DataPropertyName = "ProductId",
@@ -94,28 +131,79 @@ Public Class SalesDetailsForm
             .Width = 100,
             .ReadOnly = True
         })
+        AddHandler dgvItems.CellFormatting, AddressOf DgvItems_CellFormatting
 
-        btnAddProduct = New Button With {.Text = "Add Product", .Location = New Point(20, 430), .Width = 120}
-        btnRemoveProduct = New Button With {.Text = "Remove Product", .Location = New Point(160, 430), .Width = 120}
+        btnAddProduct = New Button With {
+            .Text = "Add Product",
+            .Location = New Point(30, 460),
+            .Width = 140,
+            .Height = 40,
+            .Font = New Font("Segoe UI", 10),
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(0, 120, 215),
+            .ForeColor = Color.White
+        }
+        btnRemoveProduct = New Button With {
+            .Text = "Remove Product",
+            .Location = New Point(190, 460),
+            .Width = 140,
+            .Height = 40,
+            .Font = New Font("Segoe UI", 10),
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.White,
+            .ForeColor = Color.FromArgb(0, 120, 215)
+        }
+        btnRemoveProduct.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 215)
         AddHandler btnAddProduct.Click, AddressOf BtnAddProduct_Click
         AddHandler btnRemoveProduct.Click, AddressOf BtnRemoveProduct_Click
 
-        lblTotal = New Label With {.Text = "Total: $0.00", .Location = New Point(500, 430), .AutoSize = True, .Font = New Font("Segoe UI", 12, FontStyle.Bold)}
+        lblTotal = New Label With {
+            .Text = "Total: $0.00",
+            .Location = New Point(700, 460),
+            .Font = New Font("Segoe UI", 14, FontStyle.Bold),
+            .ForeColor = Color.FromArgb(0, 120, 215),
+            .AutoSize = True
+        }
 
-        Dim lblPayment As New Label With {.Text = "Payment Method", .Location = New Point(20, 480)}
+        Dim lblPayment As New Label With {
+            .Text = "Payment Method",
+            .Location = New Point(30, 520),
+            .Font = New Font("Segoe UI", 10),
+            .AutoSize = True
+        }
         cmbPaymentMethod = New ComboBox With {
-            .Location = New Point(160, 475),
-            .Width = 180,
-            .DropDownStyle = ComboBoxStyle.DropDownList
+            .Location = New Point(180, 515),
+            .Width = 220,
+            .DropDownStyle = ComboBoxStyle.DropDownList,
+            .Font = New Font("Segoe UI", 10)
         }
         cmbPaymentMethod.Items.AddRange(New String() {"Cash", "Card", "Mobile Money", "Bank Transfer"})
 
-        btnSave = New Button With {.Text = "Save", .Location = New Point(160, 550), .Width = 100}
-        btnCancel = New Button With {.Text = "Cancel", .Location = New Point(280, 550), .Width = 100}
+        btnSave = New Button With {
+            .Text = "Save",
+            .Location = New Point(600, 580),
+            .Width = 120,
+            .Height = 40,
+            .Font = New Font("Segoe UI", 12, FontStyle.Bold),
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(0, 120, 215),
+            .ForeColor = Color.White
+        }
+        btnCancel = New Button With {
+            .Text = "Cancel",
+            .Location = New Point(740, 580),
+            .Width = 120,
+            .Height = 40,
+            .Font = New Font("Segoe UI", 12, FontStyle.Bold),
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.White,
+            .ForeColor = Color.FromArgb(0, 120, 215)
+        }
+        btnCancel.FlatAppearance.BorderColor = Color.FromArgb(0, 120, 215)
         AddHandler btnSave.Click, AddressOf BtnSave_Click
         AddHandler btnCancel.Click, Sub() Me.DialogResult = DialogResult.Cancel
 
-        Me.Controls.AddRange({lblCustomer, cmbCustomer, lblStaff, cmbStaff, lblSaleDate, dtpSaleDate, dgvItems, btnAddProduct, btnRemoveProduct, lblTotal, lblPayment, cmbPaymentMethod, btnSave, btnCancel})
+        Me.Controls.AddRange({lblTitle, lblCustomer, cmbCustomer, lblStaff, cmbStaff, lblSaleDate, dtpSaleDate, dgvItems, btnAddProduct, btnRemoveProduct, lblTotal, lblPayment, cmbPaymentMethod, btnSave, btnCancel})
         dgvItems.DataSource = New BindingSource(SaleItem.Items, Nothing)
         UpdateTotal()
     End Sub
@@ -168,5 +256,18 @@ Public Class SalesDetailsForm
         SaleItem.SaleDate = dtpSaleDate.Value
         SaleItem.PaymentMethod = cmbPaymentMethod.SelectedItem.ToString()
         Me.DialogResult = DialogResult.OK
+    End Sub
+
+    ' Display product image in the grid
+    Private Sub DgvItems_CellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs)
+        If dgvItems.Columns(e.ColumnIndex).HeaderText = "Image" Then
+            Dim saleItem As SaleItem = CType(dgvItems.Rows(e.RowIndex).DataBoundItem, SaleItem)
+            Dim prod = _products.FirstOrDefault(Function(p) p.ProductId = saleItem.ProductId)
+            If prod IsNot Nothing AndAlso Not String.IsNullOrEmpty(prod.ImagePath) AndAlso IO.File.Exists(prod.ImagePath) Then
+                e.Value = ImageHelper.LoadImage(prod.ImagePath)
+            Else
+                e.Value = Nothing
+            End If
+        End If
     End Sub
 End Class

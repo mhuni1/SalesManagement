@@ -7,107 +7,173 @@ Public Class SalesForm
     Private WithEvents btnAdd As Button
     Private WithEvents btnEdit As Button
     Private WithEvents btnDelete As Button
+    Private tableLayoutPanel As TableLayoutPanel
+    Private buttonPanel As FlowLayoutPanel
 
     Public Sub New()
         MyBase.New()
         _staffList = _dataService.GetStaff()
         InitializeComponent()
-        LoadSalesData()
+        LoadSalesData() ' Load data immediately after initialization
     End Sub
 
     Private Sub InitializeComponent()
-        Me.Text = "Sales Management"
-        Me.Size = New Size(1050, 600)
+        Me.SuspendLayout()
+        
+        ' Create TableLayoutPanel for main layout
+        tableLayoutPanel = New TableLayoutPanel With {
+            .Dock = DockStyle.Fill,
+            .RowCount = 2,
+            .ColumnCount = 1,
+            .BackColor = Color.White
+        }
+        tableLayoutPanel.RowStyles.Add(New RowStyle(SizeType.Percent, 100))
+        tableLayoutPanel.RowStyles.Add(New RowStyle(SizeType.Absolute, 50))
+        tableLayoutPanel.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 100))
 
-        dgvSales = New DataGridView()
-        With dgvSales
-            .Dock = DockStyle.Fill
-            .AllowUserToAddRows = False
-            .AllowUserToDeleteRows = False
-            .MultiSelect = False
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
-            .AutoGenerateColumns = False
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+        ' Initialize DataGridView
+        dgvSales = New DataGridView With {
+            .Dock = DockStyle.Fill,
+            .BackgroundColor = Color.White,
+            .BorderStyle = BorderStyle.None,
+            .AllowUserToAddRows = False,
+            .AllowUserToDeleteRows = False,
+            .AllowUserToResizeRows = False,
+            .MultiSelect = False,
+            .SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+            .AutoGenerateColumns = False,
+            .RowHeadersVisible = False,
+            .ReadOnly = True
+        }
+
+        ' Configure DataGridView columns
+        With dgvSales.Columns
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "SaleId",
                 .HeaderText = "ID",
-                .Width = 50
+                .Width = 60
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "CustomerId",
                 .HeaderText = "Customer",
                 .Width = 150
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "StaffId",
                 .HeaderText = "Staff",
                 .Width = 150
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "SaleDate",
                 .HeaderText = "Date",
                 .Width = 150
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "TotalAmount",
                 .HeaderText = "Total Amount",
                 .Width = 120
             })
-            .Columns.Add(New DataGridViewTextBoxColumn With {
+            .Add(New DataGridViewTextBoxColumn With {
                 .DataPropertyName = "PaymentMethod",
                 .HeaderText = "Payment Method",
                 .Width = 120
             })
         End With
 
-        Dim buttonPanel As New FlowLayoutPanel With {
-            .Dock = DockStyle.Bottom,
+        ' Style DataGridView
+        With dgvSales
+            .EnableHeadersVisualStyles = False
+            .ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(0, 120, 215)
+            .ColumnHeadersDefaultCellStyle.ForeColor = Color.White
+            .ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI", 10, FontStyle.Bold)
+            .ColumnHeadersHeight = 40
+            .RowTemplate.Height = 35
+            .DefaultCellStyle.Font = New Font("Segoe UI", 10)
+            .AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(245, 245, 245)
+        End With
+
+        ' Initialize button panel
+        buttonPanel = New FlowLayoutPanel With {
+            .Dock = DockStyle.Fill,
             .FlowDirection = FlowDirection.LeftToRight,
-            .Height = 40,
-            .Padding = New Padding(5)
+            .Padding = New Padding(0, 5, 0, 5)
         }
+
+        ' Initialize buttons
         btnAdd = New Button With {
             .Text = "Add Sale",
-            .Width = 100
+            .Width = 120,
+            .Height = 35,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(0, 120, 215),
+            .ForeColor = Color.White,
+            .Font = New Font("Segoe UI", 10)
         }
+
         btnEdit = New Button With {
             .Text = "Edit Sale",
-            .Width = 100,
+            .Width = 120,
+            .Height = 35,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.White,
+            .ForeColor = Color.FromArgb(0, 120, 215),
+            .Font = New Font("Segoe UI", 10),
             .Enabled = False
         }
+
         btnDelete = New Button With {
             .Text = "Delete Sale",
-            .Width = 100,
+            .Width = 120,
+            .Height = 35,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.White,
+            .ForeColor = Color.FromArgb(0, 120, 215),
+            .Font = New Font("Segoe UI", 10),
             .Enabled = False
         }
+
+        ' Add buttons to panel
         buttonPanel.Controls.AddRange({btnAdd, btnEdit, btnDelete})
-        Me.Controls.Add(dgvSales)
-        Me.Controls.Add(buttonPanel)
+
+        ' Add controls to TableLayoutPanel
+        tableLayoutPanel.Controls.Add(dgvSales, 0, 0)
+        tableLayoutPanel.Controls.Add(buttonPanel, 0, 1)
+
+        ' Add TableLayoutPanel to form
+        Me.Controls.Add(tableLayoutPanel)
+
+        ' Wire up events
+        AddHandler dgvSales.SelectionChanged, AddressOf dgvSales_SelectionChanged
+        AddHandler btnAdd.Click, AddressOf btnAdd_Click
+        AddHandler btnEdit.Click, AddressOf btnEdit_Click
+        AddHandler btnDelete.Click, AddressOf btnDelete_Click
+
+        Me.ResumeLayout(False)
     End Sub
 
-    Private Sub LoadSalesData()
+    Public Sub LoadSalesData()
         Try
             _salesList = _dataService.GetSales()
-            ' Optionally, show staff name instead of ID
-            For Each sale In _salesList
-                Dim staff = _staffList.FirstOrDefault(Function(s) s.StaffId = sale.StaffId)
-                If staff IsNot Nothing Then
-                    sale.PaymentMethod = $"{sale.PaymentMethod} (By: {staff.FullName})"
-                End If
-            Next
+            
+            ' Update DataGridView
             dgvSales.DataSource = Nothing
             dgvSales.DataSource = _salesList
+            
+            ' Force refresh
+            dgvSales.Refresh()
+            Me.Refresh()
         Catch ex As Exception
             ShowError("Error loading sales data: " & ex.Message)
         End Try
     End Sub
 
-    Private Sub dgvSales_SelectionChanged(sender As Object, e As EventArgs) Handles dgvSales.SelectionChanged
+    Private Sub dgvSales_SelectionChanged(sender As Object, e As EventArgs)
         Dim hasSelection = dgvSales.SelectedRows.Count > 0
         btnEdit.Enabled = hasSelection
         btnDelete.Enabled = hasSelection
     End Sub
 
-    Private Sub btnAdd_Click(sender As Object, e As EventArgs) Handles btnAdd.Click
+    Private Sub btnAdd_Click(sender As Object, e As EventArgs)
         Dim newSale As New Sale With {.SaleId = GetNextSaleId()}
         Using detailsForm As New SalesDetailsForm(newSale)
             If detailsForm.ShowDialog() = DialogResult.OK Then
@@ -119,7 +185,7 @@ Public Class SalesForm
         End Using
     End Sub
 
-    Private Sub btnEdit_Click(sender As Object, e As EventArgs) Handles btnEdit.Click
+    Private Sub btnEdit_Click(sender As Object, e As EventArgs)
         If dgvSales.SelectedRows.Count > 0 Then
             Dim selectedSale = DirectCast(dgvSales.SelectedRows(0).DataBoundItem, Sale)
             Using detailsForm As New SalesDetailsForm(selectedSale)
@@ -132,7 +198,7 @@ Public Class SalesForm
         End If
     End Sub
 
-    Private Sub btnDelete_Click(sender As Object, e As EventArgs) Handles btnDelete.Click
+    Private Sub btnDelete_Click(sender As Object, e As EventArgs)
         If dgvSales.SelectedRows.Count > 0 Then
             If MessageBox.Show("Are you sure you want to delete this sale?", "Confirm Delete",
                              MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.Yes Then
